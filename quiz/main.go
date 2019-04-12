@@ -19,7 +19,7 @@ type Problem struct {
 
 var score int
 
-func answerRoutine(problems []Problem, expired chan bool, timer *time.Timer, duration int) {
+func answerRoutine(problems []Problem, done chan bool) {
 	stdin := bufio.NewReader(os.Stdin)
 	for _, problem := range problems {
 		fmt.Printf("What is %v? ", problem.Question)
@@ -31,12 +31,8 @@ func answerRoutine(problems []Problem, expired chan bool, timer *time.Timer, dur
 			fmt.Println("Oops, you didn't answer that one correctly.")
 			fmt.Printf("The correct answer is %v.\n", problem.Answer)
 		}
-		if !timer.Stop() {
-			<-timer.C
-		}
-		timer.Reset(time.Duration(duration) * time.Second)
 	}
-	expired <- false
+	done <- false
 }
 
 func timerChecker(done chan bool, timer *time.Timer) {
@@ -72,13 +68,13 @@ func main() {
 			line[1],
 		})
 	}
-	expired := make(chan bool)
+	done := make(chan bool)
 	timer := time.NewTimer(time.Duration(timeLimit) * time.Second)
 
-	go answerRoutine(problems, expired, timer, timeLimit)
-	go timerChecker(expired, timer)
+	go answerRoutine(problems, done)
+	go timerChecker(done, timer)
 
-	val := <-expired
+	val := <-done
 	fmt.Println("")
 
 	if val {
